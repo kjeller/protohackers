@@ -23,7 +23,7 @@ global _start
 
 ; TCP configurations
 %define MSGLEN		512
-%define PORT		0xd00d
+%define PORT		0xbeef
 
 section .text
 
@@ -42,7 +42,7 @@ _start:
     mov r9,rax ;r9 contains fd (return value)
 
     push dword 0      ; INADDR_ANY
-    push word PORT    ; port 3536
+    push word PORT
     push word 2       ; AF_INET
 
     ; bind(fd, *addr, addrlen)
@@ -69,7 +69,7 @@ loop:
     mov rdx, 0
     syscall
     cmp rax, 0
-    jl exit
+    jl loop
     mov r12, rax ;r12 fd to client
 
     ; fork()
@@ -80,19 +80,19 @@ loop:
 
 read:
     ; read(fd, buf, count)
-    mov rax, 0 
+    mov rax, sys_read
     mov rdi, r12
-    mov rsi, inputbuffer
+    mov rsi, msgbuffer
     mov rdx, MSGLEN
     syscall
 
 write:
     ; write(fd, buf, count)
-    mov rax, 1 
+    mov rax, sys_write
     mov rdi, r12
-    mov rsi, inputbuffer
+    mov rsi, msgbuffer
     mov rdx, MSGLEN
     syscall
 
 segment .bss
-    inputbuffer: resb MSGLEN
+    msgbuffer: resb MSGLEN
