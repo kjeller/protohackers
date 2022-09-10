@@ -24,6 +24,9 @@ global _start
 ; TCP configurations
 %define MSGLEN		512
 %define PORT		0xefbe
+%define sin_family	2 ; AF_INET
+%define sin_type	1 ; SOCK_STREAM
+%define sin_addr	0 ; INADDR_ANY
 
 section .text
 
@@ -35,21 +38,21 @@ exit:
 _start:
     ; fd = socket(AF_INET, SOCK_STREAM, 0);
     mov rax, sys_socket
-    mov rdi, 2
-    mov rsi, 1
-    mov rdx, 0
+    mov rdi, sin_family
+    mov rsi, sin_type
+    mov rdx, 0 ; default protocol
     syscall
-    mov r9,rax ;r9 contains fd (return value)
+    mov r9, rax ;r9 contains fd (return value)
 
-    push dword 0      ; INADDR_ANY
+    push dword sin_addr
     push word PORT
-    push word 2       ; AF_INET
+    push word sin_family
 
     ; bind(fd, *addr, addrlen)
     mov rax, sys_bind
     mov rdi, r9
     mov rsi, rsp
-    mov rdx, 16
+    mov rdx, 16 ; for sockaddr_in (IPv4)
     syscall
     cmp rax, 0
     jl exit

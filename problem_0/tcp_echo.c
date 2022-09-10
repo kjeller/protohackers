@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
 
   while (1) {
     int cl_fd =
-        accept(srv_fd, (struct sockaddr *)&addr, (socklen_t *)&addrlen);
+        accept(srv_fd, 0, 0);
 
     if (cl_fd < 0) {
       continue;
@@ -43,7 +43,6 @@ int main(int argc, char *argv[]) {
 
     // 0 is returned in the child thread
     if (ret == 0) {
-      // TODO check if client still available
       while (1) {
         read(cl_fd, buffer, MSGLEN);
         write(cl_fd, buffer, MSGLEN);
