@@ -1,0 +1,98 @@
+; TCP Echo Service from RFC 862
+; The solution to https://protohackers.com/problem/0
+;
+; Resources:
+;  - Useful lookup table from: https://filippo.io/linux-syscall-table/
+
+global _start
+
+; sys/syscall.h
+%define sys_read	0
+%define sys_write	1
+%define sys_socket	41
+%define sys_accept	43
+%define sys_bind	49
+%define sys_listen	50
+%define sys_fork	57
+%define sys_exit	60
+
+; unistd.h
+%define STDIN		0
+%define STDOUT		1
+%define STDERR		2
+
+; TCP configurations
+%define MSGLEN		512
+%define PORT		0xd00d
+
+section .text
+
+exit:
+    mov rdi, 0
+    mov rax, sys_exit
+    syscall
+
+_start:
+    ; fd = socket(AF_INET, SOCK_STREAM, 0);
+    mov rax, sys_socket
+    mov rdi, 2
+    mov rsi, 1
+    mov rdx, 0
+    syscall
+    mov r9,rax ;r9 contains fd (return value)
+
+    push dword 0      ; INADDR_ANY
+    push word PORT    ; port 3536
+    push word 2       ; AF_INET
+
+    ; bind(fd, *addr, addrlen)
+    mov rax, sys_bind
+    mov rdi, r9
+    mov rsi, rsp
+    mov rdx, 16
+    syscall
+    cmp rax, 0
+    jl exit
+
+    ; listen(sockfd, queue len)
+    mov rax, sys_listen 
+    mov rdi, r9
+    mov rsi, 10
+    syscall
+
+; create a new thread for every client that connects
+loop:
+    ; accept(fd, addr(NULL), addrlen(NULL), flags)
+    mov rax, sys_accept 
+    mov rdi, r9
+    mov rsi, 0
+    mov rdx, 0
+    syscall
+    cmp rax, 0
+    jl exit
+    mov r12, rax ;r12 fd to client
+
+    ; fork()
+    mov rax, sys_fork 
+    syscall
+    cmp rax, 0
+    jne loop
+
+read:
+    ; read(fd, buf, count)
+    mov rax, 0 
+    mov rdi, r12
+    mov rsi, inputbuffer
+    mov rdx, MSGLEN
+    syscall
+
+write:
+    ; write(fd, buf, count)
+    mov rax, 1 
+    mov rdi, r12
+    mov rsi, inputbuffer
+    mov rdx, MSGLEN
+    syscall
+
+segment .bss
+    inputbuffer: resb MSGLEN
