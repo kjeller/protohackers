@@ -35,7 +35,7 @@ There are two ways to test the application against tcp clients:
 
 Run the following command (create a tcp client using ncat)
 ```
-echo "test" | nc -v localhost
+echo "test" | nc -v localhost 48879
 ```
 
 If test is returned from the tcp server the test is successful.
