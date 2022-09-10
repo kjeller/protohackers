@@ -21,6 +21,8 @@ int main(int argc, char *argv[]) {
   struct sockaddr_in addr = {
       .sin_family = AF_INET, .sin_addr.s_addr = INADDR_ANY, .sin_port = htons(PORT)};
 
+  int addrlen = sizeof(addr);
+
   if (bind(srv_fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
     exit(EXIT_FAILURE);
   }
@@ -31,7 +33,7 @@ int main(int argc, char *argv[]) {
 
   while (1) {
     int cl_fd =
-        accept(srv_fd, (struct sockaddr *)&addr, (socklen_t *)sizeof(addr));
+        accept(srv_fd, (struct sockaddr *)&addr, (socklen_t *)&addrlen);
 
     if (cl_fd < 0) {
       continue;
@@ -41,14 +43,13 @@ int main(int argc, char *argv[]) {
 
     // 0 is returned in the child thread
     if (ret == 0) {
-      read(cl_fd, buffer, MSGLEN);
-      printf("got %s\n", buffer);
-      write(cl_fd, buffer, MSGLEN);
-      close(cl_fd);
-      break;
+      // TODO check if client still available
+      while (1) {
+        read(cl_fd, buffer, MSGLEN);
+        write(cl_fd, buffer, MSGLEN);
+      }
     } else {
       // Main thread does nothing but accept more connections
-      printf("spawned a thread");
     }
   }
 

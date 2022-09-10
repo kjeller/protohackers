@@ -23,7 +23,7 @@ global _start
 
 ; TCP configurations
 %define MSGLEN		512
-%define PORT		0xbeef
+%define PORT		0xefbe
 
 section .text
 
@@ -60,8 +60,8 @@ _start:
     mov rsi, 10
     syscall
 
-; create a new thread for every client that connects
-loop:
+; fork a thread for every client that connects
+srv_loop:
     ; accept(fd, addr(NULL), addrlen(NULL), flags)
     mov rax, sys_accept 
     mov rdi, r9
@@ -69,16 +69,16 @@ loop:
     mov rdx, 0
     syscall
     cmp rax, 0
-    jl loop
-    mov r12, rax ;r12 fd to client
+    jl srv_loop
+    mov r12, rax ; r12 fd to client
 
     ; fork()
     mov rax, sys_fork 
     syscall
-    cmp rax, 0
-    jne loop
+    cmp rax, 0 ; child return is 0
+    jne srv_loop
 
-read:
+cl_loop:
     ; read(fd, buf, count)
     mov rax, sys_read
     mov rdi, r12
@@ -86,13 +86,13 @@ read:
     mov rdx, MSGLEN
     syscall
 
-write:
     ; write(fd, buf, count)
     mov rax, sys_write
     mov rdi, r12
     mov rsi, msgbuffer
     mov rdx, MSGLEN
     syscall
+    jmp cl_loop
 
 segment .bss
     msgbuffer: resb MSGLEN
