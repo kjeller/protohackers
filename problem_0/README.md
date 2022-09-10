@@ -17,7 +17,7 @@ sudo apt install nasm
 ### Build and run
 ```
 # Build and link tcp server
-make
+make asm
 
 # Run tcp server
 ./bin/tcp_server
