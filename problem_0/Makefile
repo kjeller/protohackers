@@ -8,10 +8,10 @@ all: asm clang
 
 ${SRC_NAME}.o:
 	mkdir -p ${BUILD_FOLDER}
-	nasm -f elf64 -o ${BUILD_FOLDER}/${SRC_NAME}.o ${SRC_NAME}.asm
+	nasm -f elf64 -g -o ${BUILD_FOLDER}/${SRC_NAME}.o ${SRC_NAME}.asm
 
 asm: ${SRC_NAME}.o
-	ld ${BUILD_FOLDER}/${SRC_NAME}.o -o ${BUILD_FOLDER}/${ASM_EXEC_NAME}
+	gcc -no-pie -pthread ${BUILD_FOLDER}/${SRC_NAME}.o -o ${BUILD_FOLDER}/${ASM_EXEC_NAME}
 
 clang:
 	gcc ${SRC_NAME}.c -o ${BUILD_FOLDER}/${CLANG_EXEC_NAME}

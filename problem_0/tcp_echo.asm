@@ -4,8 +4,6 @@
 ; Resources:
 ;  - Useful lookup table from: https://filippo.io/linux-syscall-table/
 
-global _start
-
 ; sys/syscall.h
 %define sys_read	0
 %define sys_write	1
@@ -28,14 +26,21 @@ global _start
 %define sin_type	1 ; SOCK_STREAM
 %define sin_addr	0 ; INADDR_ANY
 
-section .text
+section .bss
+extern pthread_create
+extern pthread_detach
 
+section .data
+thread_id: dq 0
+
+section .text
 exit:
     mov rdi, 0
     mov rax, sys_exit
     syscall
 
-_start:
+global main
+main:
     ; fd = socket(AF_INET, SOCK_STREAM, 0);
     mov rax, sys_socket
     mov rdi, sin_family
@@ -75,11 +80,18 @@ srv_loop:
     jl srv_loop
     mov r12, rax ; r12 fd to client
 
-    ; fork()
-    mov rax, sys_fork 
-    syscall
-    cmp rax, 0 ; child return is 0
-    jne srv_loop
+    push r12 ; this still wrong, must be address(ed)
+
+    mov rdi, thread_id ; &child_tid
+    mov rsi, 0 ; NULL
+    mov rdx, cl_loop ; cl_loop (func point)
+    mov rcx, rsp ; &cl_fd
+    
+    call pthread_create
+
+    mov rdi, thread_id
+    call pthread_detach
+    jmp srv_loop
 
 cl_loop:
     ; read(fd, buf, count)
