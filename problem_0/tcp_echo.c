@@ -5,28 +5,28 @@
 //
 // Neither this file or tcp_echo.asm shouldn't be used in any production
 // code base. More error handling is required for that.
-#include <netinet/in.h>
-#include <stdlib.h>
 #include <stdio.h>
-#include <sys/socket.h>
+#include <stdlib.h>
 #include <unistd.h>
-#include <pthread.h>
-#include <sched.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <string.h>
+#include <errno.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <signal.h>
+#include <sys/wait.h>
 
 #define MSGLEN 4096
 #define PORT 0xbeef
-#define   STACK_SIZE	(4096 * 1024)
 
-void *echo(void *arg) {
-  int cl_fd = *(int *)arg;
+void echo(int cl_fd) {
   char buffer[MSGLEN];
-
   int r;
 
   while( (r = read(cl_fd, buffer, MSGLEN)) > 0 ) {
     write(cl_fd, buffer, r);
   }
-  close(cl_fd);
 }
 
 int main(int argc, char *argv[]) {
@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
     exit(EXIT_FAILURE);
   }
 
-  listen(srv_fd, 10);
+  listen(srv_fd, 511);
 
   while (1) {
     int cl_fd =
@@ -50,10 +50,22 @@ int main(int argc, char *argv[]) {
     if (cl_fd < 0) {
       continue;
     }
-
-    pthread_t child_tid;
-    pthread_create(&child_tid, NULL, echo, &cl_fd);
-    pthread_detach(child_tid);
+    
+    pid_t pid = fork();
+    if (pid == -1) {
+      exit(0);
+    }
+    
+    if (pid == 0) {
+      // in child process
+      close(srv_fd);
+      echo(cl_fd);
+      close(cl_fd);
+      
+    } else if (pid > 0) {
+      // in parent process
+      close(cl_fd);
+    }
   }
 
   close(srv_fd);
