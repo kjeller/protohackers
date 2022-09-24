@@ -1,3 +1,5 @@
 *.so
 *.a
 bin
+*.out
+*.swp
