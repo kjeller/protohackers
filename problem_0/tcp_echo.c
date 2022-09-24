@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
     exit(EXIT_FAILURE);
   }
 
-  listen(srv_fd, 511);
+  listen(srv_fd, 10);
 
   while (1) {
     int cl_fd =

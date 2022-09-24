@@ -36,7 +36,7 @@ main:
     mov rsi, sin_type
     mov rdx, 0 ; default protocol
     syscall
-    mov r9, rax ;r9 contains server fd
+    mov r8, rax ;r8 contains server fd
 
     push dword sin_addr
     push word PORT
@@ -44,7 +44,7 @@ main:
 
     ; bind(fd, *addr, addrlen)
     mov rax, sys_bind
-    mov rdi, r9
+    mov rdi, r8
     mov rsi, rsp
     mov rdx, 16 ; for sockaddr_in (IPv4)
     syscall
@@ -53,33 +53,33 @@ main:
 
     ; listen(sockfd, queue len)
     mov rax, sys_listen 
-    mov rdi, r9
-    mov rsi, 511
+    mov rdi, r8
+    mov rsi, 10
     syscall
 
-; fork a thread for every client that connects
+; fork for every client that connects
 srv_loop:
     ; accept(fd, addr(NULL), addrlen(NULL), flags)
     mov rax, sys_accept 
-    mov rdi, r9
+    mov rdi, r8
     mov rsi, 0
     mov rdx, 0
     syscall
     cmp rax, 0
     jl srv_loop
-    mov r12, rax ; r12 fd to client
+    mov r9, rax ; r9 fd to client
 
     ; fork()
     mov rax, sys_fork 
     syscall
 
-    ; child thread pid
+    ; child process pid
     cmp rax, 0
     je echo
 
-    ; close() client fd from main thread
+    ; close() client fd from main process
     mov rax, sys_close 
-    mov rdi, r12
+    mov rdi, r9
     syscall
     jmp srv_loop
 
@@ -89,15 +89,15 @@ srv_loop:
 ;   close(cl_fd);
 ; }
 echo:
-    ; close() server fd from child thread
+    ; close() server fd from child process
     mov rax, sys_close 
-    mov rdi, r9
+    mov rdi, r8
     syscall
 
 cl_loop:
     ; read(fd, buf, count)
     mov rax, sys_read
-    mov rdi, r12
+    mov rdi, r9
     mov rsi, msgbuffer
     mov rdx, MSGLEN
     syscall
@@ -109,7 +109,7 @@ cl_loop:
     ; write(fd, buf, count)
     mov rdx, rax ; rax contains result from prev read()
     mov rax, sys_write
-    mov rdi, r12
+    mov rdi, r9
     mov rsi, msgbuffer
     syscall
     jmp cl_loop
@@ -117,7 +117,7 @@ cl_loop:
 cl_exit:
     ; close() client fd 
     mov rax, sys_close 
-    mov rdi, r12
+    mov rdi, r9
     syscall
 
 segment .bss
