@@ -1,5 +1,5 @@
-; TCP Echo Service from RFC 862
-; The solution to https://protohackers.com/problem/0
+; TCP Echo Service implementation of RFC 862
+; A solution to https://protohackers.com/problem/0
 ;
 ; Resources:
 ;  - Useful lookup table from: https://filippo.io/linux-syscall-table/
@@ -28,8 +28,8 @@ exit:
     mov rax, sys_exit
     syscall
 
-global main
-main:
+global _start
+_start:
     ; fd = socket(AF_INET, SOCK_STREAM, 0);
     mov rax, sys_socket
     mov rdi, sin_family

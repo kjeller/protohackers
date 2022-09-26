@@ -11,7 +11,7 @@ ${SRC_NAME}.o:
 	nasm -f elf64 -g -o ${BUILD_FOLDER}/${SRC_NAME}.o ${SRC_NAME}.asm
 
 asm: ${SRC_NAME}.o
-	gcc -no-pie -pthread ${BUILD_FOLDER}/${SRC_NAME}.o -o ${BUILD_FOLDER}/${ASM_EXEC_NAME}
+	ld ${BUILD_FOLDER}/${SRC_NAME}.o -o ${BUILD_FOLDER}/${ASM_EXEC_NAME}
 
 clang:
 	gcc ${SRC_NAME}.c -o ${BUILD_FOLDER}/${CLANG_EXEC_NAME}
