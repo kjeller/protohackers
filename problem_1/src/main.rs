@@ -5,6 +5,9 @@ use std::{
     result::Result,
 };
 
+const BIND_ADDR: &str = "0.0.0.0:48879";
+const DEF_ERROR_RESP: &str = "{}";
+
 #[derive(PartialEq)]
 enum Method {
     IsPrime(i32),
@@ -100,27 +103,31 @@ fn handle_connection(mut stream: TcpStream) {
     loop {
         let buf_reader = BufReader::new(&mut stream);
         let request_line = buf_reader.lines().next().unwrap().unwrap();
-        let mut response = "{}".to_string();
-        let mut method = parse_json(&request_line);
+        let method = parse_json(&request_line);
     
         println!("Got request {}", request_line);
-    
+        
         match method {
             Ok(m) => {
-                response = handle_response(m);
+                let response = handle_response(m);
+                stream.write_all({
+                    println!("Sending response {}", &response);
+                    response.as_bytes()
+                }).unwrap();
             },
             Err(_) => {
-                println!("Malformed json")
+                println!("Malformed json");
+                stream.write_all({
+                    DEF_ERROR_RESP.as_bytes()
+                }).unwrap();
+                return;
             },
         }
-    
-        println!("Sending response {}", response);
-        stream.write_all(response.as_bytes()).unwrap();
     } 
 }
 
 fn main() {
-    let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
+    let listener = TcpListener::bind(BIND_ADDR).unwrap();
 
     for stream in listener.incoming() {
         let stream = stream.unwrap();
