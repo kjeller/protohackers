@@ -3,6 +3,7 @@ use std::{
     net::{TcpListener, TcpStream},
     thread,
     result::Result,
+    error::Error,
 };
 
 const BIND_ADDR: &str = "0.0.0.0:48879";
@@ -111,19 +112,21 @@ fn handle_connection(mut stream: TcpStream) {
             Ok(m) => {
                 let response = handle_response(m);
                 stream.write_all({
-                    println!("Sending response {}", &response);
+                    println!("Valid json: Sending response {}", &response);
                     response.as_bytes()
                 }).unwrap();
+                stream.flush().unwrap();
             },
             Err(_) => {
-                println!("Malformed json");
+                println!("Malformed json: responding with err");
                 stream.write_all({
                     DEF_ERROR_RESP.as_bytes()
                 }).unwrap();
-                return;
+                stream.flush().unwrap();
+                break;
             },
         }
-    } 
+    }
 }
 
 fn main() {
