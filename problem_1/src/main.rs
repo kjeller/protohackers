@@ -3,7 +3,6 @@ use std::{
     net::{TcpListener, TcpStream},
     thread,
     result::Result,
-    error::Error,
 };
 
 const BIND_ADDR: &str = "0.0.0.0:48879";
@@ -54,15 +53,15 @@ impl Message {
         }
     }
 
-    fn process(&mut self, method: Method) {
+    fn process(&mut self, method: &Method) {
         self.method = method.get_string_constant();
         match method {
-            Method::IsPrime(x) => self.result = Method::is_prime(x),
+            Method::IsPrime(x) => self.result = Method::is_prime(*x),
         }
     }
 
     fn to_string(&self) -> String {
-        return format!("{{\"method\":\"isPrime\",\"prime\":{}}}", self.result);
+        return format!("{{\"method\":\"isPrime\",\"prime\":{}}}\n", self.result);
     }
 }
 
@@ -92,25 +91,30 @@ fn parse_json(json: &str) -> Result<Method, ProtocolMalformed> {
     Err(ProtocolMalformed)
 }
 
-fn handle_response(method: Method) -> String {
+fn handle_response(method: &Method) -> String {
     let mut result = Message::new();
 
-    result.process(method);
+    result.process(&method);
     println!("{}", result.to_string());
     result.to_string()
 }
 
 fn handle_connection(mut stream: TcpStream) {
     loop {
-        let buf_reader = BufReader::new(&mut stream);
-        let request_line = buf_reader.lines().next().unwrap().unwrap();
+        let mut buf_reader = BufReader::new(&mut stream);
+        let mut request_line = String::new();
+        let num_bytes = buf_reader.read_line(&mut request_line).unwrap();
         let method = parse_json(&request_line);
     
-        println!("Got request {}", request_line);
+        println!("Read {} bytes: {} ", num_bytes, request_line);
+
+        if num_bytes == 0 {
+            break;
+        }
         
         match method {
             Ok(m) => {
-                let response = handle_response(m);
+                let response = handle_response(&m);
                 stream.write_all({
                     println!("Valid json: Sending response {}", &response);
                     response.as_bytes()
@@ -118,7 +122,7 @@ fn handle_connection(mut stream: TcpStream) {
                 stream.flush().unwrap();
             },
             Err(_) => {
-                println!("Malformed json: responding with err");
+                println!("Malformed json '{}': responding with err", request_line);
                 stream.write_all({
                     DEF_ERROR_RESP.as_bytes()
                 }).unwrap();
@@ -127,6 +131,7 @@ fn handle_connection(mut stream: TcpStream) {
             },
         }
     }
+    println!("Disconnect client!");
 }
 
 fn main() {
@@ -161,30 +166,25 @@ mod tests {
         ];
 
         for (i, r) in requests.iter().enumerate() {
-            let mut method = parse_json(r.into());
+            let method = parse_json(r);
             assert!(method == expected[i]);
         }
     }
 
     #[test]
-    fn test_json_req_resp() {
+    fn test_handle_response() {
         let requests = vec![
-            "{\"method\":\"isPrime\",\"number\":123}".to_string(),
-            "{\"method\":\"isPrime\",\"number\":1}".to_string(),
-            "{\"method\":\"isPrime\",\"number\":\"notnumber\"}".to_string(),
-            "{\"method\":\"isprime\",\"number\":1}".to_string(),
+            Method::IsPrime(123),
+            Method::IsPrime(1),
         ];
 
         let exp_response = vec![
             "{\"method\":\"isPrime\",\"prime\":false}".to_string(),
-            "{\"method\":\"isPrime\",\"prime\":true}".to_string(),
-            "{}".to_string(),
-            "{}".to_string(),
+            "{\"method\":\"isPrime\",\"prime\":false}".to_string(),
         ];
 
         for (i, r) in requests.iter().enumerate() {
-            let mut method = parse_json(r.into());
-            assert!(method == expected[i]);
+            assert!(handle_response(r) == exp_response[i]);
         }
     }
 
