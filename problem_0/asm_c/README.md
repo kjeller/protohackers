@@ -1,12 +1,31 @@
 # Problem 0: Smoke Test
+Protohackers problem 0 solution written in x86_64 NASM and C.
 
-Protohackers problem 0 solution(s) written in:
-- [x86_64 NASM & C](asm_c/README.md)
-- [Rust](rust/README.md)
+## Build
+
+Build and execution instructins for tcp_echo
+
+### Prerequisite(s)
+
+The tcp server code is written in x86_64 with NASM syntax.
+
+Example of installing nasm using apt:
+```
+sudo apt install nasm
+```
+
+### Build and run
+```
+# Build and link tcp server
+make asm
+
+# Run tcp server
+./bin/tcp_server
+```
 
 ## Test
 
-There are two ways to test the application against tcp clients:
+Two ways to test the TCP echo server:
 
 - Protohackers solution checker provides a way to test solutions against a tcp client online.
 
