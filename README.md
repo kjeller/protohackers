@@ -8,7 +8,7 @@ Protohackers problem solutions
 
 # Problem 1: Prime Time
 
-TODO
+[Problem 1 solution](problem_1/README.md)
 
 # Problem 2: Means to an End
 

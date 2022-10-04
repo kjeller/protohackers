@@ -1,4 +1,5 @@
 # Problem 0: Smoke Test
+
 Protohackers problem 0 solution written in x86_64 NASM and C.
 
 ## Build

@@ -1,4 +1,4 @@
-# Problem 0: Smoke Test
+# Problem 1: Prime Time
 
 Protohackers problem 1 solution written in Rust
 
@@ -20,7 +20,8 @@ There are two ways to test the application against tcp clients:
 
 Run the following command (create a tcp client using ncat)
 ```
-echo "test" | nc -v localhost 48879
-```
+echo "{\"method\":\"isPrime\",\"number\":123}" | nc -v localhost 48879
 
-If test is returned from the tcp server the test is successful.
+# test is successful if the response is:
+{"method":"isPrime","prime":false}\n
+```
