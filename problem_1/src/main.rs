@@ -1,5 +1,5 @@
 use std::{
-    io::{prelude::*, BufReader},
+    io::{prelude::*, BufReader, BufWriter},
     net::{TcpListener, TcpStream},
     thread,
     result::Result,
@@ -10,32 +10,13 @@ const DEF_ERROR_RESP: &str = "{}";
 
 #[derive(PartialEq)]
 enum Method {
-    IsPrime(i32),
+    IsPrime(i64),
 }
 
 impl Method {
-    fn is_prime(n: i32) -> bool {
-        if n <= 1 {
-            return false;
-        }
-            
-        for a in 2..n {
-            if n % a == 0 {
-                return false;
-            }
-        }
-        true
-    }
-
     fn get_string_constant(&self) -> String {
         match self {
             Method::IsPrime(_) => return "prime".to_string(),
-        }
-    }
-
-    fn to_string(&self) -> String {
-        match self {
-            Method::IsPrime(x) => return format!("IsPrime: {}", x),
         }
     }
 }
@@ -56,7 +37,13 @@ impl Message {
     fn process(&mut self, method: &Method) {
         self.method = method.get_string_constant();
         match method {
-            Method::IsPrime(x) => self.result = Method::is_prime(*x),
+            Method::IsPrime(x) => {
+                if *x < 0 {
+                    self.result = false;
+                } else {
+                    self.result = primes::is_prime(*x as u64);
+                }
+            }
         }
     }
 
@@ -83,8 +70,8 @@ fn parse_json(json: &str) -> Result<Method, ProtocolMalformed> {
             }
         }
     
-        if let Some(x) = data["number"].as_i32() {
-            return Ok(Method::IsPrime(x))
+        if let Some(x) = data["number"].as_f64() {
+            return Ok(Method::IsPrime(x as i64))
         } 
     }
 
@@ -95,13 +82,15 @@ fn handle_response(method: &Method) -> String {
     let mut result = Message::new();
 
     result.process(&method);
-    println!("{}", result.to_string());
     result.to_string()
 }
 
 fn handle_connection(mut stream: TcpStream) {
+    let mut buf_reader = BufReader::new(stream.try_clone().unwrap());
+    let mut buf_writer = BufWriter::new(&mut stream);
+
     loop {
-        let mut buf_reader = BufReader::new(&mut stream);
+        
         let mut request_line = String::new();
         let num_bytes = buf_reader.read_line(&mut request_line).unwrap();
         let method = parse_json(&request_line);
@@ -115,18 +104,18 @@ fn handle_connection(mut stream: TcpStream) {
         match method {
             Ok(m) => {
                 let response = handle_response(&m);
-                stream.write_all({
+                buf_writer.write_all({
                     println!("Valid json: Sending response {}", &response);
                     response.as_bytes()
                 }).unwrap();
-                stream.flush().unwrap();
+                buf_writer.flush().unwrap();
             },
             Err(_) => {
                 println!("Malformed json '{}': responding with err", request_line);
-                stream.write_all({
+                buf_writer.write_all({
                     DEF_ERROR_RESP.as_bytes()
                 }).unwrap();
-                stream.flush().unwrap();
+                buf_writer.flush().unwrap();
                 break;
             },
         }
@@ -156,12 +145,16 @@ mod tests {
         let requests = vec![
             "{\"method\":\"isPrime\",\"number\":123}".to_string(),
             "{\"method\":\"isPrime\",\"number\":1}".to_string(),
+            "{\"method\":\"isPrime\",\"number\":7119040.0}".to_string(),
+            "{\"method\":\"isPrime\",\"number\":7119040.123}".to_string(),
             "{}".to_string(),
         ];
 
         let expected = vec![
             Ok(Method::IsPrime(123)),
             Ok(Method::IsPrime(1)),
+            Ok(Method::IsPrime(7119040)),
+            Ok(Method::IsPrime(7119040)),
             Err(ProtocolMalformed),
         ];
 
@@ -179,23 +172,12 @@ mod tests {
         ];
 
         let exp_response = vec![
-            "{\"method\":\"isPrime\",\"prime\":false}".to_string(),
-            "{\"method\":\"isPrime\",\"prime\":false}".to_string(),
+            "{\"method\":\"isPrime\",\"prime\":false}\n".to_string(),
+            "{\"method\":\"isPrime\",\"prime\":false}\n".to_string(),
         ];
 
         for (i, r) in requests.iter().enumerate() {
             assert!(handle_response(r) == exp_response[i]);
         }
     }
-
-    #[test]
-    fn test_is_prime() {
-        let numbers: Vec<i32> = vec![1, 2, 3, 4, 5, 6, 7, 8];
-        let exp_prime: Vec<bool> = vec![false, true, true, false, true, false, true, false];
-
-        for (i, num) in numbers.iter().enumerate() {
-            assert!(Method::is_prime(*num) == exp_prime[i]);
-        }
-    }
-
 }
