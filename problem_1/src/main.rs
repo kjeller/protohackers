@@ -13,29 +13,22 @@ enum Method {
     IsPrime(i64),
 }
 
-impl Method {
-    fn get_string_constant(&self) -> String {
-        match self {
-            Method::IsPrime(_) => return "prime".to_string(),
-        }
-    }
-}
-
-struct Message {
-    method: String,
+struct ResponseMessage {
+    method_id: String,
+    method_response: String,
     result: bool,
 }
 
-impl Message {
-    fn new() -> Message {
-        Message {
-            method: "".to_string(),
+impl ResponseMessage {
+    fn new() -> ResponseMessage {
+        ResponseMessage {
+            method_id: "".to_string(),
+            method_response: "".to_string(),
             result: false,
         }
     }
 
     fn process(&mut self, method: &Method) {
-        self.method = method.get_string_constant();
         match method {
             Method::IsPrime(x) => {
                 if *x < 0 {
@@ -43,12 +36,15 @@ impl Message {
                 } else {
                     self.result = primes::is_prime(*x as u64);
                 }
+                self.method_id = "isPrime".into();
+                self.method_response = "prime".into();
             }
         }
     }
 
-    fn to_string(&self) -> String {
-        return format!("{{\"method\":\"isPrime\",\"prime\":{}}}\n", self.result);
+    fn to_json_string(&self) -> String {
+        return format!("{{\"method\":\"{}\",\"{}\":{}}}\n",
+            self.method_id.as_str(), self.method_response.as_str(), self.result);
     }
 }
 
@@ -79,10 +75,10 @@ fn parse_json(json: &str) -> Result<Method, ProtocolMalformed> {
 }
 
 fn handle_response(method: &Method) -> String {
-    let mut result = Message::new();
+    let mut result = ResponseMessage::new();
 
     result.process(&method);
-    result.to_string()
+    result.to_json_string()
 }
 
 fn handle_connection(mut stream: TcpStream) {
